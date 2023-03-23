@@ -1,0 +1,20 @@
+[package]
+name = "mini-ray-examples"
+version = "0.0.1"
+authors = ["examples"]
+edition = "2021"
+
+
+[dependencies.fplot]
+path="../../fplot"
+
+[dependencies.mini_ray]
+path="../"
+
+[[bin]]
+name="sample"
+path="sample/main.rs"
+
+[[bin]]
+name="many_spheres"
+path="many_spheres/main.rs"
