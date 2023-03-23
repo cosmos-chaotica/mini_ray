@@ -1,3 +1,6 @@
+extern crate rayon;
+use rayon::prelude::*;
+
 use std::ops::{Mul, Add, Sub, AddAssign, MulAssign, Neg};
 use std::iter;
 use std::fmt::Display;
@@ -389,11 +392,7 @@ pub fn render(spheres: &[Sphere<f64>], width: &usize, height: &usize) -> Image {
     image
 }
 
-fn returns_closure() -> Box<dyn Fn(i32) -> Vec<i32>> {
-    Box::new(|x| vec![x + 1])
-}
-
-pub fn render_iter(spheres: Arc<Vec<Sphere<f64>>>, width:usize, height:usize) ->  impl Iterator<Item = Box<dyn Fn() -> [u8; 3]>> 
+pub fn render_iter(spheres: Arc<Vec<Sphere<f64>>>, width:usize, height:usize) ->  Vec<Box<dyn Fn() -> Vec<u8>>> 
 
 {
     let mut image: Vec<Vec3f> = iter::repeat(Vec3f::new()).take(width * height).collect();
@@ -414,13 +413,43 @@ pub fn render_iter(spheres: Arc<Vec<Sphere<f64>>>, width:usize, height:usize) ->
             raydir.normalize();
             match trace(&Vec3f::new(), &raydir, &spheres, 0) {
                 Vec3f{x, y, z} =>
-                [(x * 255.0) as u8, 
+                vec![(x * 255.0) as u8, 
                      (y * 255.0) as u8,
                      (z * 255.0) as u8
                 ] 
             }
             
-        }) as Box<dyn Fn() -> [u8; 3]>
+        }) as Box<dyn Fn() -> Vec<u8>>
         
-    })
+    }).collect()
+}
+
+pub fn render_pararell(spheres: Arc<Vec<Sphere<f64>>>, width:usize, height:usize) -> Vec<u8> {
+    let mut image: Vec<Vec3f> = iter::repeat(Vec3f::new()).take(width * height).collect();
+    let inv_width = 1_f64 / width as f64;
+    let inv_height = 1_f64 / height as f64;
+    let fov = 30_f64;
+    let aspectratio = width as f64 / height as f64;
+    let angle = (std::f64::consts::PI * 0.5_f64 * fov / 180.0).tan();
+    let mut idx:usize = 0;
+    let spheres = spheres.clone();
+    (0..height).flat_map(move |y| {(0..width).map(move |x| {(x, y)})}).collect::<Vec<(usize, usize)>>().par_iter().flat_map(
+    //(0..height).collect::<Vec<usize>>().par_iter().flat_map(move |y| {(0..width).map(move |x| {(x, *y)})}).flat_map(
+        move |(x, y)| {
+            let x = *x;
+            let y = *y;
+            let idx = y * width + x;
+            let xx = (2_f64* ((x as f64 + 0.5_f64) * inv_width) -1_f64) * angle * aspectratio;
+            let yy = (1_f64 - 2_f64 * ((y as f64 + 0.5) * inv_height)) * angle;
+            let mut raydir = Vec3f::from_3_val(xx, yy, -1_f64);
+            raydir.normalize();
+            match trace(&Vec3f::new(), &raydir, &spheres, 0) {
+                Vec3f{x, y, z} =>
+                vec![(x * 255.0) as u8, 
+                     (y * 255.0) as u8,
+                     (z * 255.0) as u8
+                ] 
+            }
+        }
+        ).collect()
 }
