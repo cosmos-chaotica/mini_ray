@@ -428,7 +428,7 @@ pub fn render_pararell(spheres: Arc<Vec<Sphere<f64>>>, width:usize, height:usize
     let mut image: Vec<Vec3f> = iter::repeat(Vec3f::new()).take(width * height).collect();
     let inv_width = 1_f64 / width as f64;
     let inv_height = 1_f64 / height as f64;
-    let fov = 30_f64;
+    let fov = 40_f64;
     let aspectratio = width as f64 / height as f64;
     let angle = (std::f64::consts::PI * 0.5_f64 * fov / 180.0).tan();
     let mut idx:usize = 0;
